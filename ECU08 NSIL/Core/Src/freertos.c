@@ -216,10 +216,17 @@ void StartAppInitTask(void *argument)
 {
   /* USER CODE BEGIN StartAppInitTask */
   /* Infinite loop */
+	Secuencia_arranque();
+	App_Init();
+	//es equivalente a lo de abajo osThreadExit();
+	/*
   for(;;)
   {
-    osDelay(1);
+    osDelay(1000);
   }
+  */
+	osThreadExit();
+
   /* USER CODE END StartAppInitTask */
 }
 
@@ -234,6 +241,7 @@ void StartControlTask(void *argument)
 {
   /* USER CODE BEGIN StartControlTask */
   /* Infinite loop */
+	ControlTask();
   for(;;)
   {
     osDelay(1);
@@ -252,6 +260,7 @@ void StartCanRxTask(void *argument)
 {
   /* USER CODE BEGIN StartCanRxTask */
   /* Infinite loop */
+	CanRxTask();
   for(;;)
   {
     osDelay(1);
@@ -270,6 +279,7 @@ void StartCanTxTask(void *argument)
 {
   /* USER CODE BEGIN StartCanTxTask */
   /* Infinite loop */
+	CanTxTask();
   for(;;)
   {
     osDelay(1);
@@ -288,6 +298,7 @@ void StartTelemetryTask(void *argument)
 {
   /* USER CODE BEGIN StartTelemetryTask */
   /* Infinite loop */
+	 TelemetryTask();
   for(;;)
   {
     osDelay(1);
@@ -306,6 +317,7 @@ void StartDiagTask(void *argument)
 {
   /* USER CODE BEGIN StartDiagTask */
   /* Infinite loop */
+	DiagTask();
   for(;;)
   {
     osDelay(1);

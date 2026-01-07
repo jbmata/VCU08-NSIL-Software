@@ -1,11 +1,7 @@
-#pragma once
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef APP_H
+#define APP_H
 
 void App_Init(void);
+void Secuencia_arranque(void);
 
-#ifdef __cplusplus
-}
 #endif
