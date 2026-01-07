@@ -1,0 +1,5 @@
+../Core/Src/app.c:36:13:uart_print	16	static
+../Core/Src/app.c:41:13:dump_reset_cause	136	static
+../Core/Src/app.c:57:13:can_start_all	8	static
+../Core/Src/app.c:69:13:adc_start_dma	8	static
+../Core/Src/app.c:110:6:App_Init	8	static

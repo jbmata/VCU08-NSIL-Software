@@ -1,0 +1,5 @@
+../Core/Src/can.c:8:6:CAN_InitRTOS	8	static
+../Core/Src/can.c:14:6:CAN_PushRxFromISR	72	static,ignoring_inline_asm
+../Core/Src/can.c:27:6:CAN_Send	16	static
+../Core/Src/can.c:33:6:CanRxTask	72	static
+../Core/Src/can.c:71:6:CanTxTask	64	static
