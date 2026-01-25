@@ -1,0 +1,2 @@
+../Core/Src/telemetry.c:4:6:Telemetry_Build32	2
+../Core/Src/telemetry.c:33:28:Telemetry_Send32	1

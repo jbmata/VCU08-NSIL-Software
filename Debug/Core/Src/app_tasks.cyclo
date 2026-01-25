@@ -1,0 +1,7 @@
+../Core/Src/app_tasks.c:25:17:ms_to_ticks	1
+../Core/Src/app_tasks.c:35:6:App_InitTask	0
+../Core/Src/app_tasks.c:55:6:CanRxTask	2
+../Core/Src/app_tasks.c:79:6:CanTxTask	2
+../Core/Src/app_tasks.c:101:6:ControlTask	2
+../Core/Src/app_tasks.c:138:6:TelemetryTask	1
+../Core/Src/app_tasks.c:164:6:DiagTask	1

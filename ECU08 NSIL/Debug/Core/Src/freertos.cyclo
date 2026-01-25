@@ -1,8 +1,0 @@
-../Core/Src/freertos.c:130:6:MX_FREERTOS_Init	1
-../Core/Src/freertos.c:197:6:StartDefaultTask	1
-../Core/Src/freertos.c:215:6:StartAppInitTask	1
-../Core/Src/freertos.c:233:6:StartControlTask	1
-../Core/Src/freertos.c:251:6:StartCanRxTask	1
-../Core/Src/freertos.c:269:6:StartCanTxTask	1
-../Core/Src/freertos.c:287:6:StartTelemetryTask	1
-../Core/Src/freertos.c:305:6:StartDiagTask	1
