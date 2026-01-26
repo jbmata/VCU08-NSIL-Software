@@ -1,5 +1,0 @@
-../Core/Src/control.c:8:13:out_push	24	static
-../Core/Src/control.c:29:6:Control_Init	4	static
-../Core/Src/control.c:36:10:Control_ComputeTorque	40	static
-../Core/Src/control.c:70:13:build_inv_cmd	16	static
-../Core/Src/control.c:81:6:Control_Step10ms	40	static

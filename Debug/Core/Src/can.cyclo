@@ -1,8 +1,0 @@
-../Core/Src/can.c:33:17:pack_u32_le	1
-../Core/Src/can.c:37:13:unpack_u32_le	1
-../Core/Src/can.c:45:6:CAN_Pack16	3
-../Core/Src/can.c:54:6:CAN_Unpack16	3
-../Core/Src/can.c:67:6:CanRx_ParseAndUpdate	17
-../Core/Src/can.c:114:29:bus_to_hfdcan	5
-../Core/Src/can.c:125:19:CanTx_SendHal	4
-../Core/Src/can.c:150:6:Can_ISR_PushRxFifo0	17

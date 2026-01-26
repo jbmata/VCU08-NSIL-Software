@@ -1,7 +1,0 @@
-../Core/Src/app_tasks.c:25:17:ms_to_ticks	24	static
-../Core/Src/app_tasks.c:35:6:App_InitTask	16	static
-../Core/Src/app_tasks.c:55:6:CanRxTask	56	static
-../Core/Src/app_tasks.c:79:6:CanTxTask	56	static
-../Core/Src/app_tasks.c:101:6:ControlTask	248	static
-../Core/Src/app_tasks.c:138:6:TelemetryTask	96	static
-../Core/Src/app_tasks.c:164:6:DiagTask	216	static
