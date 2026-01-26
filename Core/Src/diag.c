@@ -1,6 +1,7 @@
 #include "diag.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 /* FreeRTOS heap metrics (available if you include FreeRTOS.h and heap APIs are enabled). */
 #include "FreeRTOS.h"
@@ -19,11 +20,11 @@ void Diag_Report(osMessageQueueId_t rxQ, osMessageQueueId_t txQ)
                  "DIAG: rxQ=%lu txQ=%lu heapFree=%u heapMin=%u\r\n",
                  (unsigned long)rx_used, (unsigned long)tx_used,
                  (unsigned)free_heap, (unsigned)min_ever);
-  Diag_Log(buf);
+  Diag_Log("%s", buf);
 }
 
-__attribute__((weak)) void Diag_Log(const char *s)
+__attribute__((weak)) void Diag_Log(const char *fmt, ...)
 {
-  (void)s;
+  (void)fmt;
   /* Implement UART logging in your project. */
 }

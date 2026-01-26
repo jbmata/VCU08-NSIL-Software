@@ -1,8 +1,9 @@
-../Core/Src/freertos.c:131:6:MX_FREERTOS_Init	8	static
-../Core/Src/freertos.c:199:6:StartDefaultTask	16	static
-../Core/Src/freertos.c:217:6:StartAppInitTask	16	static
-../Core/Src/freertos.c:240:6:StartControlTask	16	static
-../Core/Src/freertos.c:259:6:StartCanRxTask	16	static
-../Core/Src/freertos.c:278:6:StartCanTxTask	16	static
-../Core/Src/freertos.c:297:6:StartTelemetryTask	16	static
-../Core/Src/freertos.c:317:6:StartDiagTask	16	static
+../Core/Src/freertos.c:142:6:MX_FREERTOS_Init	8	static
+../Core/Src/freertos.c:213:6:StartDefaultTask	16	static
+../Core/Src/freertos.c:231:6:StartAppInitTask	16	static
+../Core/Src/freertos.c:260:6:StartControlTask	224	static
+../Core/Src/freertos.c:296:6:StartCanRxTask	88	static
+../Core/Src/freertos.c:333:6:StartCanTxTask	56	static
+../Core/Src/freertos.c:369:6:StartTelemetryTask	80	static
+../Core/Src/freertos.c:401:6:StartDiagTask	16	static
+../Core/Src/freertos.c:420:6:StartIntegrationTestTask	32	static

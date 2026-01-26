@@ -23,6 +23,8 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "can.h"   // para ver can_qitem16_t
+#include "diag.h"  // Diag_Log
+#include "telemetry.h"  // Telemetry_Build32, Telemetry_Send32
 #include "test_integration.h"  // Integration tests
 
 /* Private includes ----------------------------------------------------------*/
@@ -369,7 +371,7 @@ void StartTelemetryTask(void *argument)
   /* USER CODE BEGIN StartTelemetryTask */
   /* Telemetry logging task: 100ms period (10Hz) */
   
-  AppState_t state_snapshot;
+  app_inputs_t state_snapshot;
   uint8_t payload32[32];
   
   for(;;)
