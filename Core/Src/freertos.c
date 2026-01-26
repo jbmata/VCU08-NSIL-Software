@@ -23,6 +23,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "can.h"   // para ver can_qitem16_t
+#include "test_integration.h"  // Integration tests
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -97,6 +98,13 @@ const osThreadAttr_t DiagTask_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for IntegrationTestTask */
+osThreadId_t IntegrationTestTaskHandle;
+const osThreadAttr_t IntegrationTestTask_attributes = {
+  .name = "IntegrationTest",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for canRxQueue */
 osMessageQueueId_t canRxQueueHandle;
 const osMessageQueueAttr_t canRxQueue_attributes = {
@@ -120,6 +128,7 @@ void StartCanRxTask(void *argument);
 void StartCanTxTask(void *argument);
 void StartTelemetryTask(void *argument);
 void StartDiagTask(void *argument);
+void StartIntegrationTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -179,6 +188,9 @@ canTxQueueHandle = osMessageQueueNew(64,  sizeof(can_qitem16_t), NULL);
   /* creation of DiagTask */
   DiagTaskHandle = osThreadNew(StartDiagTask, NULL, &DiagTask_attributes);
 
+  /* creation of IntegrationTestTask */
+  IntegrationTestTaskHandle = osThreadNew(StartIntegrationTestTask, NULL, &IntegrationTestTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -218,14 +230,20 @@ void StartAppInitTask(void *argument)
 {
   /* USER CODE BEGIN StartAppInitTask */
 
-
-
-  for(;;)
-  {
-    osDelay(1000);
-  }
-
-
+  Diag_Log("\n=== ECU08 NSIL INITIALIZATION ===\n");
+  
+  // Initialize application state machine (BOOT state)
+  AppState_Init();
+  Diag_Log("State machine initialized (BOOT)\n");
+  
+  // Initialize control logic
+  Control_Init();
+  Diag_Log("Control module initialized\n");
+  
+  Diag_Log("=== INITIALIZATION COMPLETE ===\n");
+  
+  // Exit this init task - scheduler will run other tasks
+  osThreadExit();
 
   /* USER CODE END StartAppInitTask */
 }
@@ -240,11 +258,28 @@ void StartAppInitTask(void *argument)
 void StartControlTask(void *argument)
 {
   /* USER CODE BEGIN StartControlTask */
-  /* Infinite loop */
-
+  /* Control loop: 10ms period (100Hz) */
+  
+  app_inputs_t state_snapshot;
+  control_out_t control_output;
+  
   for(;;)
   {
-
+    // 1. Take snapshot of application state (thread-safe via mutex)
+    AppState_Snapshot(&state_snapshot);
+    
+    // 2. Execute control logic (10ms timestep)
+    Control_Step10ms(&state_snapshot, &control_output);
+    
+    // 3. Process CAN messages to send (if any)
+    for (uint8_t i = 0; i < control_output.count; i++) {
+      can_qitem16_t qitem;
+      CAN_Pack16(&control_output.msgs[i], &qitem);
+      osMessageQueuePut(canTxQueueHandle, &qitem, 0, 0);
+    }
+    
+    // 4. Sleep for 10ms (100Hz control loop)
+    osDelay(10);
   }
   /* USER CODE END StartControlTask */
 }
@@ -259,11 +294,29 @@ void StartControlTask(void *argument)
 void StartCanRxTask(void *argument)
 {
   /* USER CODE BEGIN StartCanRxTask */
-  /* Infinite loop */
-
+  /* CAN Receive task: 5ms period */
+  
+  can_qitem16_t rx_qitem;
+  can_msg_t rx_msg;
+  osStatus_t status;
+  app_inputs_t snapshot;
+  
   for(;;)
   {
-    osDelay(1);
+    // Check if messages in queue (non-blocking)
+    status = osMessageQueueGet(canRxQueueHandle, &rx_qitem, NULL, 0);
+    
+    if (status == osOK) {
+      // Unpack queue item to CAN message
+      CAN_Unpack16(&rx_qitem, &rx_msg);
+      
+      // Take snapshot, parse and update
+      AppState_Snapshot(&snapshot);
+      CanRx_ParseAndUpdate(&rx_msg, &snapshot);
+      // (Caller should update shared state under mutex)
+    }
+    
+    osDelay(5);  // 5ms polling rate (200Hz)
   }
   /* USER CODE END StartCanRxTask */
 }
@@ -278,11 +331,28 @@ void StartCanRxTask(void *argument)
 void StartCanTxTask(void *argument)
 {
   /* USER CODE BEGIN StartCanTxTask */
-  /* Infinite loop */
-
+  /* CAN Transmit task: 20ms period (50Hz) */
+  
+  can_qitem16_t tx_qitem;
+  can_msg_t tx_msg;
+  osStatus_t status;
+  
   for(;;)
   {
-    osDelay(1);
+    // Check if messages pending in TX queue (non-blocking)
+    status = osMessageQueueGet(canTxQueueHandle, &tx_qitem, NULL, 0);
+    
+    while (status == osOK) {
+      // Unpack and transmit
+      CAN_Unpack16(&tx_qitem, &tx_msg);
+      CanTx_SendHal(&tx_msg);
+      
+      // Check for next message (non-blocking)
+      status = osMessageQueueGet(canTxQueueHandle, &tx_qitem, NULL, 0);
+    }
+    
+    // Sleep for 20ms (50Hz TX rate)
+    osDelay(20);
   }
   /* USER CODE END StartCanTxTask */
 }
@@ -297,12 +367,24 @@ void StartCanTxTask(void *argument)
 void StartTelemetryTask(void *argument)
 {
   /* USER CODE BEGIN StartTelemetryTask */
-  /* Infinite loop */
-
+  /* Telemetry logging task: 100ms period (10Hz) */
+  
+  AppState_t state_snapshot;
+  uint8_t payload32[32];
+  
   for(;;)
   {
-
-    osDelay(1);
+    // Take snapshot of current state
+    AppState_Snapshot(&state_snapshot);
+    
+    // Build telemetry payload (32 bytes)
+    Telemetry_Build32(&state_snapshot, payload32);
+    
+    // Send telemetry (UART/nRF24/etc)
+    Telemetry_Send32(payload32);
+    
+    // Sleep for 100ms (10Hz logging rate)
+    osDelay(100);
   }
   /* USER CODE END StartTelemetryTask */
 }
@@ -324,6 +406,29 @@ void StartDiagTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartDiagTask */
+}
+
+/* USER CODE BEGIN Header_StartIntegrationTestTask */
+/**
+* @brief Function implementing the IntegrationTestTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartIntegrationTestTask */
+void StartIntegrationTestTask(void *argument)
+{
+  /* USER CODE BEGIN StartIntegrationTestTask */
+  
+  Diag_Log("\n\nIntegrationTestTask started");
+  osDelay(100);
+  
+  // Run all integration tests
+  Test_IntegrationRunAll();
+  
+  // After tests complete, terminate this task
+  osThreadExit();
+  
+  /* USER CODE END StartIntegrationTestTask */
 }
 
 /* Private application code --------------------------------------------------*/
