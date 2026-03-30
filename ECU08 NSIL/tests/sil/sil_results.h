@@ -7,6 +7,7 @@
 #define SIL_RESULTS_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include <time.h>
 
 /* Initialize results file */

@@ -22,10 +22,10 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-#include "can.h"   // para ver can_qitem16_t
-#include "diag.h"  // Diag_Log
-#include "telemetry.h"  // Telemetry_Build32, Telemetry_Send32
-#include "test_integration.h"  // Integration tests
+#include "can.h"        /* can_qitem16_t, CAN_Pack16, etc.          */
+#include "diag.h"        /* Diag_Log                                  */
+#include "telemetry.h"   /* Telemetry_Build32, Telemetry_Send32       */
+#include "test_integration.h"  /* Integration tests – modo HIL (hardware)  */
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -145,7 +145,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+  /* Mutex global de acceso a g_in (app_state). DEBE crearse antes de
+   * cualquier tarea que llame AppState_Snapshot / AppState_Init.       */
+  g_inMutex = osMutexNew(NULL);
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -421,14 +423,18 @@ void StartIntegrationTestTask(void *argument)
 {
   /* USER CODE BEGIN StartIntegrationTestTask */
   
-  Diag_Log("\n\nIntegrationTestTask started");
-  osDelay(100);
-  
-  // Run all integration tests
-  Test_IntegrationRunAll();
-  
-  // After tests complete, terminate this task
-  osThreadExit();
+  Diag_Log("\n\nIntegrationTestTask started – esperando estabilizacion del sistema...");
+
+  /* Esperar a que el resto de tareas se inicialicen (AppInitTask termina
+   * en ~0 ms, pero necesitamos que g_inMutex y las colas existan).       */
+  osDelay(200);
+
+  /* Ejecutar todas las suites de integración y generar informe */
+  test_result_t res = Test_IntegrationRunAll();
+  (void)res;  /* resultado ya impreso por Test_IntegrationRunAll            */
+
+  /* Tarea de test finalizada – se suspende indefinidamente */
+  osThreadSuspend(NULL);
   
   /* USER CODE END StartIntegrationTestTask */
 }

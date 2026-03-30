@@ -83,17 +83,11 @@ void Control_Step10ms(const app_inputs_t *in, control_out_t *out)
   if (!in || !out) return;
   memset(out, 0, sizeof(*out));
 
-  /* Torque computation from inputs */
+  /* Torque computation from inputs (used only in RUN state) */
   uint8_t ev23 = 0, t1189 = 0;
   uint16_t torque = Control_ComputeTorque(in, &ev23, &t1189);
-  out->torque_pct = torque;
+  /* out->torque_pct stays 0 until state reaches CTRL_ST_RUN */
 
-  /* Example cooperative startup:
-   * - Wait for precharge ack
-   * - Require brake + start button
-   * - R2D delay of 2000ms
-   * - Then send torque commands
-   */
   switch (s_state)
   {
     case CTRL_ST_BOOT:
@@ -129,6 +123,7 @@ void Control_Step10ms(const app_inputs_t *in, control_out_t *out)
     case CTRL_ST_RUN:
     default:
     {
+      out->torque_pct = torque;   /* Only propagate torque in RUN state */
       can_msg_t cmd;
       build_inv_cmd(torque, &cmd);
       out_push(out, &cmd);

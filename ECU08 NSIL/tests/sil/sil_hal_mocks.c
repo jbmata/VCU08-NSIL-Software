@@ -28,6 +28,7 @@ uint16_t SIL_ADC_Read(uint32_t channel)
 }
 
 /* ===== CAN simulation ===== */
+/* NOTE: SIL_CAN_Init is defined in sil_can_simulator.c */
 #define SIL_CAN_RX_QUEUE_SIZE 16
 #define SIL_CAN_TX_QUEUE_SIZE 16
 
@@ -40,12 +41,7 @@ typedef struct {
 static sil_can_frame_t can_rx_queue[SIL_CAN_RX_QUEUE_SIZE] = {0};
 static sil_can_frame_t can_tx_queue[SIL_CAN_TX_QUEUE_SIZE] = {0};
 static uint32_t can_rx_head = 0, can_rx_tail = 0;
-static uint32_t can_tx_head = 0, can_tx_tail = 0;
-
-void SIL_CAN_Init(void)
-{
-    printf("[CAN] CAN SIL initialized\n");
-}
+static uint32_t can_tx_tail = 0;
 
 void SIL_CAN_SendFrame(uint32_t id, const uint8_t *data, uint8_t dlc)
 {

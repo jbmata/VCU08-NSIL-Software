@@ -13,15 +13,103 @@
 #include <time.h>
 
 #include "app_state.h"
+#include "control.h"
+#include "test_integration.h"   /* suites S1-S10, Test_IntegrationRunAll() */
 #include "sil_hal_mocks.h"
 #include "sil_can_simulator.h"
 #include "sil_boot_sequence.h"
 #include "sil_results.h"
 
+/* Declarada en mocks/diag_sil.c: redirige Diag_Log al fichero especificado */
+extern void SIL_DiagSetFile(FILE *f);
+/* Declarada en mocks/cmsis_os2_impl.c: crea colas CAN y mutex global       */
+extern void SIL_RTOS_Init(void);
+
 /* ===== Global state for SIL ===== */
 static volatile uint32_t sil_tick_ms = 0;
 static volatile int sil_simulation_running = 0;
 static volatile uint32_t sil_test_duration_ms = 0;
+
+/* ===== Test: Suites de integración S1-S10 (test_integration.c) ===== */
+
+/**
+ * Ejecuta las 10 suites de integración y escribe el informe en:
+ *   tests/sil/results/integration_test.log
+ *
+ * La salida también aparece en consola (stdout) en tiempo real a través
+ * de Diag_Log, que en SIL está implementado en mocks/diag_sil.c.
+ */
+static void test_integration_suite(void)
+{
+    const char *log_path = "tests/sil/results/integration_test.log";
+
+    printf("\n");
+    printf("╔══════════════════════════════════════════════════════╗\n");
+    printf("║  SIL TEST: Integration Test Suite  (S1-S10)         ║\n");
+    printf("║  Modo: TEST_MODE_SIL  |  Host PC (sin hardware)     ║\n");
+    printf("╚══════════════════════════════════════════════════════╝\n\n");
+
+    /* Abrir fichero de resultados */
+    FILE *log = fopen(log_path, "w");
+    if (!log) {
+        /* Intentar crear el directorio results si no existe */
+        printf("[WARN] No se pudo abrir %s, intentando crear directorio...\n", log_path);
+        (void)system("mkdir -p tests/sil/results");
+        log = fopen(log_path, "w");
+    }
+
+    /* Escribir cabecera del fichero de log */
+    if (log) {
+        time_t now = time(NULL);
+        char   ts[64];
+        strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", localtime(&now));
+        fprintf(log, "=======================================================\n");
+        fprintf(log, "  ECU08 NSIL – Integration Test Results (SIL)          \n");
+        fprintf(log, "  Fecha: %s                                             \n", ts);
+        fprintf(log, "  Modo : TEST_MODE_SIL (host PC, sin hardware STM32)   \n");
+        fprintf(log, "=======================================================\n\n");
+        fflush(log);
+        SIL_DiagSetFile(log);   /* Diag_Log → stdout + log file              */
+        printf("[INFO] Resultados se guardarán en: %s\n\n", log_path);
+    } else {
+        printf("[WARN] No se pudo crear fichero de log. Salida solo por stdout.\n\n");
+        SIL_DiagSetFile(NULL);
+    }
+
+    /* Inicializar el entorno RTOS mock (colas CAN, mutex) */
+    SIL_RTOS_Init();
+
+    /* EJECUTAR TODOS LOS TESTS */
+    test_result_t res = Test_IntegrationRunAll();
+
+    /* Añadir resumen final al fichero de log */
+    if (log) {
+        fprintf(log, "\n=======================================================\n");
+        fprintf(log, "  RESUMEN FINAL\n");
+        fprintf(log, "=======================================================\n");
+        fprintf(log, "  Tests totales : %lu\n", (unsigned long)res.total);
+        fprintf(log, "  Tests pasados : %lu\n", (unsigned long)res.passed);
+        fprintf(log, "  Tests fallados: %lu\n", (unsigned long)res.failed);
+        fprintf(log, "  Tiempo total  : %lu ms (simulados)\n", (unsigned long)res.execution_time_ms);
+        fprintf(log, "  Modo          : %s\n", res.mode);
+        fprintf(log, "  Resultado     : %s\n",
+                res.failed == 0 ? ">>> ALL TESTS PASSED <<<" : ">>> HAY TESTS FALLIDOS <<<");
+        fprintf(log, "=======================================================\n");
+        fflush(log);
+        SIL_DiagSetFile(NULL);   /* Desconectar antes de cerrar */
+        fclose(log);
+        printf("\n[INFO] Informe guardado en: %s\n", log_path);
+    }
+
+    /* Código de salida: 0 = todo OK, 1 = hay fallos */
+    if (res.failed > 0) {
+        printf("[RESULT] FALLOS: %lu/%lu tests fallaron.\n",
+               (unsigned long)res.failed, (unsigned long)res.total);
+    } else {
+        printf("[RESULT] OK: %lu/%lu tests pasaron.\n",
+               (unsigned long)res.passed, (unsigned long)res.total);
+    }
+}
 
 /**
  * Run SIL simulation for N milliseconds
@@ -368,13 +456,15 @@ static void test_dynamic_state_transitions(void)
 static void print_usage(const char *prog)
 {
     printf("Usage: %s [OPTIONS]\n", prog);
-    printf("  --test-boot              Run boot sequence test\n");
-    printf("  --test-full-cycle        Run full operating cycle test\n");
-    printf("  --test-error-voltage     Run low voltage fault test\n");
-    printf("  --test-error-temp        Run high temperature fault test\n");
-    printf("  --test-safety-brake      Run EV 2.3 brake+throttle test\n");
-    printf("  --test-dynamic-states    Run dynamic state transition test\n");
-    printf("  --test-all               Run all tests\n");
+    printf("  --test-boot              Boot sequence test\n");
+    printf("  --test-full-cycle        Full operating cycle test\n");
+    printf("  --test-error-voltage     Low voltage fault test\n");
+    printf("  --test-error-temp        High temperature fault test\n");
+    printf("  --test-safety-brake      EV 2.3 brake+throttle test\n");
+    printf("  --test-dynamic-states    Dynamic state transition test\n");
+    printf("  --test-integration       Suites S1-S10 (test_integration.c)\n");
+    printf("                           → genera results/integration_test.log\n");
+    printf("  --test-all               Run ALL tests (incluyendo S1-S10)\n");
     printf("  --help                   Print this message\n");
 }
 
@@ -407,6 +497,8 @@ int main(int argc, char *argv[])
         test_safety_brake_throttle();
     } else if (strcmp(test_name, "--test-dynamic-states") == 0) {
         test_dynamic_state_transitions();
+    } else if (strcmp(test_name, "--test-integration") == 0) {
+        test_integration_suite();
     } else if (strcmp(test_name, "--test-all") == 0) {
         printf("[MAIN] Running all SIL tests...\n\n");
         test_boot_sequence();
@@ -415,6 +507,7 @@ int main(int argc, char *argv[])
         test_error_high_temperature();
         test_safety_brake_throttle();
         test_dynamic_state_transitions();
+        test_integration_suite();   /* S1-S10 al final, genera integration_test.log */
     } else if (strcmp(test_name, "--help") == 0) {
         print_usage(argv[0]);
     } else {

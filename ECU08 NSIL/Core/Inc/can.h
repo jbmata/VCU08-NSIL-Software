@@ -4,7 +4,11 @@
 #include <stdint.h>
 #include "cmsis_os2.h"
 #include "app_state.h"
-#include "main.h"  /* Incluye STM32H7xx HAL y tipos FDCAN */
+#ifdef SIL_BUILD
+#include <main.h>  /* mocks/main.h: tipos HAL/FDCAN sin STM32 HAL real */
+#else
+#include "main.h"  /* Core/Inc/main.h: stm32h7xx_hal.h + FDCAN real   */
+#endif
 
 /* CubeMX-friendly 16-byte queue item */
 typedef struct { uint32_t w[4]; } can_qitem16_t;
